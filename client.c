@@ -11,7 +11,7 @@
 #define TRUE 1
 #define FALSE 0
 
-struct SMTP_AUTH_CREDS {
+struct SMTP_AUTH_CRED {
   char email[50];
   char password[50];
 };
@@ -39,9 +39,9 @@ struct INBOX {
   struct MAIL mails[100];
 };
 
-void options(int *option);
-void get_creds(struct SMTP_AUTH_CREDS *);
-void send_creds_to_server(int sockfd, struct SMTP_AUTH_CREDS *);
+void login_or_create(int *option);
+void get_credintials(struct SMTP_AUTH_CRED *);
+void send_cred_to_server(int sockfd, struct SMTP_AUTH_CRED *);
 void get_user_info(struct USER *);
 void send_user_info(int sockfd, struct USER *);
 int  status(int sockfd);
@@ -52,13 +52,13 @@ void show_inbox(int sockfd);
 int main(int argc, char *argv[])
 {
   struct  sockaddr_in server_addr;
-  struct  SMTP_AUTH_CREDS auth_creds;
+  struct  SMTP_AUTH_CRED auth_cred;
   struct  USER user;
   int     sockfd, port, option, is_logged_in, is_socket_connected = FALSE;
 
   if(argc != 3) 
   {
-    fprintf(stderr, "Invalid arguments\n");
+    fprintf(stderr, "Invalid Arguments\n");
     fprintf(stderr, "./server -p <port number>\n");
     return -1;
   }
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
   server_addr.sin_addr.s_addr = INADDR_ANY;
   server_addr.sin_port = htons(port);
 
-  if ( connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1 )
+  if ( connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0 )
   {
     perror("connect");
     return -1;
@@ -90,13 +90,13 @@ int main(int argc, char *argv[])
   
   while(is_socket_connected) 
   {
-    options(&option);
+    login_or_create(&option);
     send(sockfd, &option, sizeof(option), 0);
     switch (option)
     {
       case 1:
-        get_creds(&auth_creds);
-        send_cred_to_server(sockfd, &auth_creds);
+        get_credintials(&auth_cred);
+        send_cred_to_server(sockfd, &auth_cred);
         is_logged_in = status(sockfd);
         break;
     
@@ -104,12 +104,12 @@ int main(int argc, char *argv[])
         get_user_info(&user);
         send_user_info(sockfd, &user);
         is_logged_in = status(sockfd);
-        strcpy(auth_creds.email, user.email);
-        strcpy(auth_creds.password, user.password);
+        strcpy(auth_cred.email, user.email);
+        strcpy(auth_cred.password, user.password);
         break;
 
       default:
-        printf("Please choose an option to proceed\n");
+        printf("Please choose an option !!\n");
     }
 
     while (is_logged_in == TRUE)
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
           break;
       
         case 2:
-          compose_mail(sockfd, auth_creds.email);
+          compose_mail(sockfd, auth_cred.email);
           break;
 
         case 3:
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
           break;
 
         default:
-          printf("Please choose an option to proceed!\n");
+          printf("Please choose an option !!\n");
       }
     } 
   }
@@ -153,17 +153,17 @@ void login_or_create(int *option)
   scanf("%d", option);
 }
 
-void get_creds(struct SMTP_AUTH_CREDS *auth_creds)
+void get_credintials(struct SMTP_AUTH_CRED *auth_cred)
 {
   printf("EMAIL => ");
-  scanf("%s", auth_creds->email);
+  scanf("%s", auth_cred->email);
   printf("PASSWORD => ");
-  scanf("%s", auth_creds->password);
+  scanf("%s", auth_cred->password);
 }
 
-void send_creds_to_server(int sockfd, struct SMTP_AUTH_CREDS *auth_creds)
+void send_cred_to_server(int sockfd, struct SMTP_AUTH_CRED *auth_cred)
 {
-  send(sockfd, auth_creds, sizeof(*auth_creds), 0);
+  send(sockfd, auth_cred, sizeof(*auth_cred), 0);
 }
 
 void get_user_info(struct USER *user)
@@ -241,8 +241,7 @@ void show_inbox(int sockfd)
   recv(sockfd, &inbox, sizeof(struct INBOX), 0);
 
   for(i = 0; i < inbox.count; i++) {
-    printf("\n___________________________________________________________\n\
-n");
+    printf("\n___________________________________________________________\n\n");
     printf("From : %s\n", inbox.mails[i].from);
     printf("To : %s\n", inbox.mails[i].to);
     printf("Subject : %s\n", inbox.mails[i].subject);
