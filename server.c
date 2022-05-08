@@ -9,20 +9,24 @@
 
 #define TRUE 1
 #define FALSE 0
+// data file to store users and emails
 #define USERS_DAT_FILE "server/users.dat"
 #define MAILS_DAT_FILE "server/mails.dat"
 
+// struct for auth creds 
 struct SMTP_AUTH_CREDS {
   char email[50];
   char password[50];
 };
 
+// struct for user info
 struct USER {
   char name[50];
   char email[50];
   char password[50];
 };
 
+// struct for status message
 struct STATUS_MSG {
   int status_code;
   char status_msg[50];
@@ -35,16 +39,17 @@ struct MAIL {
   char body[100];
 };
 
+// struct for inbox details
 struct INBOX {
   int count;
   struct MAIL mails[100];
 };
 
-int login(int client_sockfd, struct SMTP_AUTH_CREDS *, struct USER *);
-int create_user_and_login(int client_sockfd, struct USER *, struct USER *);
-void send_status(int client_sockfd, int status_code, char *status_msg);
-void store_mail(int client_sockfd);
-void send_inbox(int client_sockfd, struct USER *);
+int login(int client_sockfd, struct SMTP_AUTH_CREDS *, struct USER *); // login function
+int create_user_and_login(int client_sockfd, struct USER *, struct USER *); // signup and login function
+void send_status(int client_sockfd, int status_code, char *status_msg); // function to send back status code
+void store_mail(int client_sockfd); // function to store emails in the mails.dat file
+void send_inbox(int client_sockfd, struct USER *); // function to return inbox to user
 
 
 int main(int argc, char *argv[])
@@ -55,6 +60,7 @@ int main(int argc, char *argv[])
   int     sockfd, client_sockfd, port, client_len, option, is_logged_in;
   FILE    *fileptr;
 
+  // insufficient number of arguments
   if(argc != 3) {
     fprintf(stderr, "Invalid Arguments\n");
     fprintf(stderr, "./server -p <port number>\n");
@@ -71,15 +77,17 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port = htons(port);
+  server_addr.sin_family = AF_INET; // AF_INET for IPv4
+  server_addr.sin_addr.s_addr = INADDR_ANY; // IPv4
+  server_addr.sin_port = htons(port); // host to network style change
 
+  // bind socket to a port on localhost
   if ( bind(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0 ) {
     perror("Bind error : ");
     return -1;
   }
   
+  // listen for data on socket
   if ( listen(sockfd, 5) < 0) {
     perror("Listen error : ");
     return -1;
@@ -87,13 +95,16 @@ int main(int argc, char *argv[])
   
   while(TRUE) {
     
+    // accept incoming connection 
     if ( (client_sockfd = accept(sockfd, (struct sockaddr *) &client_addr, &client_len)) < 0) {
       perror("Accept error : ");
       continue;
     }
 
+    // receive option from client
     recv(client_sockfd, &option, sizeof(option), 0);
 
+    // set is_logged_in flag 
     switch (option)
     {
       case 1:
@@ -152,7 +163,7 @@ int login(int client_sockfd,  struct SMTP_AUTH_CREDS *auth_creds, struct USER *u
   
   if(users_dat == NULL)
   {
-    send_status(client_sockfd, 500, "NO USER EXISTS!!");
+    send_status(client_sockfd, 500, "NO USER EXISTS!");
     return FALSE;
   }
 
@@ -178,7 +189,7 @@ int login(int client_sockfd,  struct SMTP_AUTH_CREDS *auth_creds, struct USER *u
   
   }
 
-  send_status(client_sockfd, 403, "Invalid Email And Password");
+  send_status(client_sockfd, 403, "Invalid Email and Password");
   fclose(users_dat);
   return FALSE;
 }
@@ -254,7 +265,7 @@ void store_mail(int client_sockfd)
 
   if (!found)
   {
-    send_status(client_sockfd, 404, "To Address is not exist");
+    send_status(client_sockfd, 404, "Recipient Address doesn't exist");
     fclose(users_dat);
     fclose(mails_dat);
     return;
@@ -264,7 +275,7 @@ void store_mail(int client_sockfd)
 
   perror("fwrite");
 
-  send_status(client_sockfd, 200, "Successfully Send");
+  send_status(client_sockfd, 200, "Successfully sent");
 
   fclose(users_dat);
   fclose(mails_dat);
