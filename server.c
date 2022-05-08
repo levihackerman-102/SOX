@@ -12,7 +12,7 @@
 #define USERS_DAT_FILE "server/users.dat"
 #define MAILS_DAT_FILE "server/mails.dat"
 
-struct SMTP_AUTH_CRED {
+struct SMTP_AUTH_CREDS {
   char email[50];
   char password[50];
 };
@@ -40,7 +40,7 @@ struct INBOX {
   struct MAIL mails[100];
 };
 
-int login(int client_sockfd, struct SMTP_AUTH_CRED *, struct USER *);
+int login(int client_sockfd, struct SMTP_AUTH_CREDS *, struct USER *);
 int create_user_and_login(int client_sockfd, struct USER *, struct USER *);
 void send_status(int client_sockfd, int status_code, char *status_msg);
 void store_mail(int client_sockfd);
@@ -50,7 +50,7 @@ void send_inbox(int client_sockfd, struct USER *);
 int main(int argc, char *argv[])
 {
   struct  sockaddr_in server_addr, client_addr;
-  struct  SMTP_AUTH_CRED auth_cred;
+  struct  SMTP_AUTH_CREDS auth_creds;
   struct  USER user, user_check;
   int     sockfd, client_sockfd, port, client_len, option, is_logged_in;
   FILE    *fileptr;
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
     switch (option)
     {
       case 1:
-        is_logged_in = login(client_sockfd, &auth_cred, &user);
+        is_logged_in = login(client_sockfd, &auth_creds, &user);
         break;
     
       case 2:
@@ -144,10 +144,10 @@ int main(int argc, char *argv[])
   close(sockfd);
 }
 
-int login(int client_sockfd,  struct SMTP_AUTH_CRED *auth_cred, struct USER *user)
+int login(int client_sockfd,  struct SMTP_AUTH_CREDS *auth_creds, struct USER *user)
 {
   FILE   *users_dat;
-  recv(client_sockfd, auth_cred, sizeof(*auth_cred), 0);
+  recv(client_sockfd, auth_creds, sizeof(*auth_creds), 0);
   users_dat = fopen(USERS_DAT_FILE, "rb");
   
   if(users_dat == NULL)
@@ -160,9 +160,9 @@ int login(int client_sockfd,  struct SMTP_AUTH_CRED *auth_cred, struct USER *use
   {
     fread(user, sizeof(struct USER), 1, users_dat);
    
-    if ( strcmp(user->email, auth_cred->email) == 0)
+    if ( strcmp(user->email, auth_creds->email) == 0)
     {
-      if ( strcmp(user->password, auth_cred->password) == 0)
+      if ( strcmp(user->password, auth_creds->password) == 0)
       {
         send_status(client_sockfd, 200, "Logged In Successfully");
         fclose(users_dat);
