@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  port = atoi(argv[2]); // assign port number
+  port = atoi(argv[2]); // port on which server's socket is running
 
   // create a socket
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
