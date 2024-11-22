@@ -10,3 +10,5 @@
     in the root folder of the repo
 
 2. To change the port edit it in the run script
+
+TODO: create a chat app using sockets
